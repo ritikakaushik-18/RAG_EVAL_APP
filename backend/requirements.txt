@@ -1,0 +1,23 @@
+fastapi
+uvicorn[standard]
+asyncpg
+pgvector
+sqlalchemy[asyncio]
+boto3
+python-multipart
+python-dotenv
+pydantic
+pydantic-settings
+openai
+httpx
+sentence-transformers
+pypdf
+cohere
+langgraph
+langsmith
+greenlet
+presidio-analyzer
+presidio-anonymizer
+spacy
+reportlab
+# After deploy run: python -m spacy download en_core_web_sm

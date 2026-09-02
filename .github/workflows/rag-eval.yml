@@ -1,0 +1,70 @@
+name: RAG Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  rag-eval:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run RAG Evaluation
+        id: eval
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            "${{ secrets.RAGEVAL_API_URL }}/ci/run" \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: ${{ secrets.RAGEVAL_API_KEY }}" \
+            -d '{
+              "baseline_id":    "${{ secrets.RAGEVAL_BASELINE_ID }}",
+              "query":          "${{ secrets.RAGEVAL_TEST_QUERY }}",
+              "correct_answer": "${{ secrets.RAGEVAL_CORRECT_ANSWER }}",
+              "document_ids":   ["${{ secrets.RAGEVAL_DOCUMENT_ID }}"],
+              "tenant_id":      "${{ secrets.RAGEVAL_TENANT_ID }}",
+              "pr_number":      "${{ github.event.pull_request.number }}",
+              "commit_sha":     "${{ github.sha }}"
+            }')
+          echo "Response: $RESPONSE"
+          CI_RUN_ID=$(echo "$RESPONSE" | python3 -c \
+            "import sys, json; print(json.load(sys.stdin)['ci_run_id'])")
+          echo "ci_run_id=$CI_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for evaluation to complete
+        run: |
+          API_URL="${{ secrets.RAGEVAL_API_URL }}"
+          CI_RUN_ID="${{ steps.eval.outputs.ci_run_id }}"
+          for i in $(seq 1 24); do
+            STATUS=$(curl -s "$API_URL/ci/$CI_RUN_ID" | \
+              python3 -c "import sys, json; print(json.load(sys.stdin)['status'])")
+            echo "Attempt $i — status: $STATUS"
+            if [ "$STATUS" != "running" ]; then
+              echo "Evaluation finished."
+              break
+            fi
+            sleep 10
+          done
+
+      - name: Post comment and enforce gate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const apiUrl  = '${{ secrets.RAGEVAL_API_URL }}';
+            const runId   = '${{ steps.eval.outputs.ci_run_id }}';
+
+            const res    = await fetch(`${apiUrl}/ci/${runId}`);
+            const result = await res.json();
+
+            const body = result.github_comment_markdown
+              ?? `⚠️ RAG Quality Gate: evaluation is still running. Check ${apiUrl}/ci/${runId}`;
+
+            await github.rest.issues.createComment({
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+            if (result.passed === false) {
+              core.setFailed('RAG quality gate failed — merge blocked.');
+            }
