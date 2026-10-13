@@ -6,8 +6,8 @@
       "Bash(curl -s http://localhost:3000)",
       "Bash(lsof -ti:3000)",
       "Bash(curl -s http://localhost:3000/documents)",
-      "Bash(/Users/tanmaykaushik/projects/rag-eval-framework/backend/.venv/bin/python -c \"import httpx; print\\(httpx.__version__\\)\")",
-      "Bash(/Users/tanmaykaushik/projects/rag-eval-framework/backend/.venv/bin/python -c \"import aiohttp; print\\(aiohttp.__version__\\)\")",
+      "Bash(/Users/ritikakaushik/projects/rag-eval-framework/backend/.venv/bin/python -c \"import httpx; print\\(httpx.__version__\\)\")",
+      "Bash(/Users/ritikakaushik/projects/rag-eval-framework/backend/.venv/bin/python -c \"import aiohttp; print\\(aiohttp.__version__\\)\")",
       "Bash(npx tsc *)"
     ]
   }
